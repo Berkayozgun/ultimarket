@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PaymentType {
+  NAKIT
+  KART
+  VERESIYE
+}
+
+enum DebtType {
+  BORC
+  TAHSILAT
+}
+
+enum InvoiceStatus {
+  ISLENDI
+  BEKLIYOR
+}
+
+model Product {
+  id        Int        @id @default(autoincrement())
+  barcode   String     @unique
+  name      String
+  sellPrice Float
+  category  String?
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  saleItems SaleItem[]
+}
+
+model Sale {
+  id          Int         @id @default(autoincrement())
+  totalAmount Float
+  paymentType PaymentType
+  customerId  Int?
+  customer    Customer?   @relation(fields: [customerId], references: [id])
+  createdAt   DateTime    @default(now())
+
+  items SaleItem[]
+}
+
+model SaleItem {
+  id        Int      @id @default(autoincrement())
+  saleId    Int
+  productId Int
+  quantity  Int
+  unitPrice Float
+
+  product Product @relation(fields: [productId], references: [id])
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+}
+
+model Customer {
+  id          Int               @id @default(autoincrement())
+  fullName    String
+  phone       String
+  balance     Float             @default(0)
+  creditLimit Float
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  debts DebtTransaction[]
+  sales Sale[]
+}
+
+model DebtTransaction {
+  id         Int      @id @default(autoincrement())
+  customerId Int
+  type       DebtType
+  amount     Float
+  note       String?
+  createdAt  DateTime @default(now())
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id           Int           @id @default(autoincrement())
+  supplierName String
+  invoiceDate  DateTime
+  dueDate      DateTime?
+  totalAmount  Float
+  imageUrl     String?
+  status       InvoiceStatus @default(BEKLIYOR)
+  createdAt    DateTime      @default(now())
+
+  items InvoiceItem[]
+}
+
+model InvoiceItem {
+  id             Int      @id @default(autoincrement())
+  invoiceId      Int
+  rawName        String
+  normalizedName String
+  quantity       Int
+  unitCostNet    Float
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
