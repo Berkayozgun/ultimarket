@@ -5,7 +5,6 @@ import {
 } from "@/lib/invoice-parse";
 import { InvoiceParseError, mapNvidiaError } from "@/lib/nvidia";
 
-/** @deprecated /api/invoice/parse kullanın */
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -21,16 +20,18 @@ export async function POST(req: NextRequest) {
     const analysis = await analyzeInvoiceFile(file);
     const preview = await buildInvoiceParsePreview(analysis);
 
-    return NextResponse.json({ success: true, preview, analysis });
+    return NextResponse.json({
+      success: true,
+      preview,
+      analysis,
+    });
   } catch (error) {
     if (error instanceof InvoiceParseError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
 
     const mapped = mapNvidiaError(error);
-    console.error("POST /api/fatura-analiz error:", error);
+    console.error("POST /api/invoice/parse error:", error);
     return NextResponse.json({ error: mapped.message }, { status: mapped.status });
   }
 }
-
-export type { InvoiceOcrResult as InvoiceAnalysisResult } from "@/lib/nvidia";

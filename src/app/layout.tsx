@@ -37,7 +37,13 @@ export default function RootLayout({
               href="/faturalar"
               className="px-3 py-1 rounded bg-neutral-800 text-neutral-200 hover:bg-neutral-700 font-medium active:scale-98"
             >
-              Fatura Asistanı
+              Faturalar
+            </Link>
+            <Link
+              href="/urunler"
+              className="px-3 py-1 rounded bg-neutral-800 text-neutral-200 hover:bg-neutral-700 font-medium active:scale-98"
+            >
+              Ürünler
             </Link>
           </nav>
         </header>

@@ -12,23 +12,31 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const q = searchParams.get("q")?.trim();
+    const sort = searchParams.get("sort");
+    const debtOnly = searchParams.get("debtOnly") === "true";
 
     const customers = await prisma.customer.findMany({
-      where: q
-        ? {
-            OR: [
-              { fullName: { contains: q, mode: "insensitive" } },
-              { phone: { contains: q } },
-            ],
-          }
-        : undefined,
+      where: {
+        ...(q
+          ? {
+              OR: [
+                { fullName: { contains: q, mode: "insensitive" } },
+                { phone: { contains: q } },
+              ],
+            }
+          : {}),
+        ...(debtOnly ? { balance: { gt: 0 } } : {}),
+      },
       include: {
         debts: {
           orderBy: { createdAt: "desc" },
           take: 50,
         },
       },
-      orderBy: { fullName: "asc" },
+      orderBy:
+        sort === "balance"
+          ? [{ balance: "desc" }, { fullName: "asc" }]
+          : { fullName: "asc" },
     });
 
     return NextResponse.json(customers);

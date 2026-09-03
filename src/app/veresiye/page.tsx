@@ -13,7 +13,9 @@ import {
   Phone,
   ArrowDownRight,
   ArrowUpRight,
+  Clock,
 } from "lucide-react";
+import { formatTRY } from "@/lib/currency";
 
 interface DebtTransaction {
   id: number;
@@ -39,6 +41,7 @@ export default function VeresiyePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showDebtorsOnly, setShowDebtorsOnly] = useState(false);
 
   // Yeni Müşteri Modalı
   const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
@@ -68,20 +71,27 @@ export default function VeresiyePage() {
   // Müşterileri Çek
   const fetchCustomers = useCallback(async () => {
     try {
-      const res = await fetch(`/api/customers?q=${encodeURIComponent(searchQuery)}`);
+      const params = new URLSearchParams({
+        q: searchQuery,
+        sort: "balance",
+      });
+      if (showDebtorsOnly) params.set("debtOnly", "true");
+
+      const res = await fetch(`/api/customers?${params.toString()}`);
       if (res.ok) {
-        const data = await res.json();
+        const data: Customer[] = await res.json();
         setCustomers(data);
-        if (data.length > 0 && selectedCustomerId === null) {
-          setSelectedCustomerId(data[0].id);
-        }
+        setSelectedCustomerId((prev) => {
+          if (prev !== null && data.some((c) => c.id === prev)) return prev;
+          return data.length > 0 ? data[0].id : null;
+        });
       }
     } catch (err) {
       console.error("Customers fetch error:", err);
     } finally {
       setIsLoading(false);
     }
-  }, [searchQuery, selectedCustomerId]);
+  }, [searchQuery, showDebtorsOnly]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -156,7 +166,7 @@ export default function VeresiyePage() {
       setActionAmount("");
       setActionNote("");
       setActionError(null);
-      showFeedback("success", `${amount.toLocaleString("tr-TR")} ₺ borç yazıldı`);
+      showFeedback("success", `${formatTRY(amount)} borç yazıldı`);
       await fetchCustomers();
     } catch (err) {
       console.error("Borç ekleme hatası:", err);
@@ -193,7 +203,7 @@ export default function VeresiyePage() {
       setActionAmount("");
       setActionNote("");
       setActionError(null);
-      showFeedback("success", `${amount.toLocaleString("tr-TR")} ₺ tahsil edildi`);
+      showFeedback("success", `${formatTRY(amount)} tahsil edildi`);
       await fetchCustomers();
     } catch (err) {
       console.error("Tahsilat hatası:", err);
@@ -205,6 +215,20 @@ export default function VeresiyePage() {
   const remainingLimit = selectedCustomer
     ? selectedCustomer.creditLimit - selectedCustomer.balance
     : 0;
+
+  const getLastTransactionDate = (customer: Customer) => {
+    if (!customer.debts || customer.debts.length === 0) return null;
+    return new Date(customer.debts[0].createdAt);
+  };
+
+  const formatDate = (date: Date) =>
+    date.toLocaleString("tr-TR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
   return (
     <div className="flex-1 flex flex-col h-full bg-neutral-950 text-neutral-100 overflow-hidden">
@@ -247,6 +271,18 @@ export default function VeresiyePage() {
             </button>
           </div>
 
+          <div className="px-3 py-2 border-b border-neutral-800 bg-neutral-900/40">
+            <label className="flex items-center gap-2 text-xs text-neutral-400 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showDebtorsOnly}
+                onChange={(e) => setShowDebtorsOnly(e.target.checked)}
+                className="rounded border-neutral-600 bg-neutral-800 text-amber-500 focus:ring-amber-500 focus:ring-offset-0"
+              />
+              Sadece borçlu müşteriler
+            </label>
+          </div>
+
           {/* Müşteri Listesi */}
           <div className="flex-1 overflow-y-auto divide-y divide-neutral-900">
             {isLoading ? (
@@ -262,6 +298,7 @@ export default function VeresiyePage() {
                 const isSelected = c.id === selectedCustomerId;
                 const hasDebt = c.balance > 0;
                 const remLimit = c.creditLimit - c.balance;
+                const lastTx = getLastTransactionDate(c);
 
                 return (
                   <div
@@ -286,27 +323,26 @@ export default function VeresiyePage() {
                           <Phone className="w-3 h-3" />
                           <span>{c.phone}</span>
                         </div>
+                        {lastTx && (
+                          <div className="text-[10px] text-neutral-600 flex items-center gap-1 mt-1">
+                            <Clock className="w-3 h-3" />
+                            <span>Son işlem: {formatDate(lastTx)}</span>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Borç Bakiyesi */}
                       <div className="text-right">
                         <div
                           className={`text-sm font-bold tabular-nums ${
                             hasDebt ? "text-amber-400" : "text-emerald-400"
                           }`}
                         >
-                          {c.balance.toLocaleString("tr-TR", {
-                            minimumFractionDigits: 2,
-                          })}{" "}
-                          ₺
+                          {formatTRY(c.balance)}
                         </div>
                         <div className="text-[10px] text-neutral-500">
                           Kalan:{" "}
                           <span className="tabular-nums text-neutral-400">
-                            {remLimit.toLocaleString("tr-TR", {
-                              minimumFractionDigits: 2,
-                            })}{" "}
-                            ₺
+                            {formatTRY(remLimit)}
                           </span>
                         </div>
                       </div>
@@ -336,10 +372,7 @@ export default function VeresiyePage() {
                     <span>
                       Toplam Kredi Limiti:{" "}
                       <strong className="text-neutral-200 tabular-nums">
-                        {selectedCustomer.creditLimit.toLocaleString("tr-TR", {
-                          minimumFractionDigits: 2,
-                        })}{" "}
-                        ₺
+                        {formatTRY(selectedCustomer.creditLimit)}
                       </strong>
                     </span>
                   </div>
@@ -358,10 +391,7 @@ export default function VeresiyePage() {
                           : "text-emerald-400"
                       }`}
                     >
-                      {selectedCustomer.balance.toLocaleString("tr-TR", {
-                        minimumFractionDigits: 2,
-                      })}{" "}
-                      ₺
+                      {formatTRY(selectedCustomer.balance)}
                     </div>
                   </div>
 
@@ -370,10 +400,7 @@ export default function VeresiyePage() {
                       Kullanılabilir Limit
                     </div>
                     <div className="text-xl font-bold text-neutral-200 tabular-nums">
-                      {remainingLimit.toLocaleString("tr-TR", {
-                        minimumFractionDigits: 2,
-                      })}{" "}
-                      ₺
+                      {formatTRY(remainingLimit)}
                     </div>
                   </div>
                 </div>
@@ -396,7 +423,7 @@ export default function VeresiyePage() {
                   }`}
                 >
                   <PlusCircle className="w-4 h-4" />
-                  <span>Borç Yaz (Ürün Şartsız)</span>
+                  <span>Manuel Borç Ekle</span>
                 </button>
 
                 {/* 2. Kısmi Tahsilat */}
@@ -415,7 +442,7 @@ export default function VeresiyePage() {
                   }`}
                 >
                   <CreditCard className="w-4 h-4" />
-                  <span>Kısmi Tahsilat</span>
+                  <span>Tahsilat Al</span>
                 </button>
 
                 {/* 3. Bakiye Kapat */}
@@ -425,7 +452,7 @@ export default function VeresiyePage() {
                   className="p-3.5 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold text-sm flex items-center justify-center gap-2 active:scale-98"
                 >
                   <CheckCircle className="w-4 h-4" />
-                  <span>Bakiye Kapat ({selectedCustomer.balance.toLocaleString("tr-TR")} ₺)</span>
+                  <span>Bakiye Kapat ({formatTRY(selectedCustomer.balance)})</span>
                 </button>
               </div>
 
@@ -435,7 +462,7 @@ export default function VeresiyePage() {
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-sm font-semibold text-neutral-200">
                       {actionType === "borc"
-                        ? "Elden Borç Ekle"
+                        ? "Manuel Borç Ekle"
                         : "Tahsilat Al"}
                     </span>
                     <button
@@ -510,16 +537,7 @@ export default function VeresiyePage() {
                   ) : (
                     selectedCustomer.debts.map((item) => {
                       const isBorc = item.type === "BORC";
-                      const dateStr = new Date(item.createdAt).toLocaleString(
-                        "tr-TR",
-                        {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        }
-                      );
+                      const dateStr = formatDate(new Date(item.createdAt));
 
                       return (
                         <div
@@ -559,10 +577,7 @@ export default function VeresiyePage() {
                             }`}
                           >
                             {isBorc ? "+" : "-"}
-                            {item.amount.toLocaleString("tr-TR", {
-                              minimumFractionDigits: 2,
-                            })}{" "}
-                            ₺
+                            {formatTRY(item.amount)}
                           </div>
                         </div>
                       );

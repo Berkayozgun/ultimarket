@@ -21,16 +21,18 @@ export async function POST(req: NextRequest) {
     const analysis = await analyzeInvoiceFile(file);
     const preview = await buildInvoiceParsePreview(analysis);
 
-    return NextResponse.json({ success: true, preview, analysis });
+    return NextResponse.json({
+      success: true,
+      preview,
+      analysis,
+    });
   } catch (error) {
     if (error instanceof InvoiceParseError) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
 
     const mapped = mapNvidiaError(error);
-    console.error("POST /api/fatura-analiz error:", error);
+    console.error("POST /api/invoices/ocr error:", error);
     return NextResponse.json({ error: mapped.message }, { status: mapped.status });
   }
 }
-
-export type { InvoiceOcrResult as InvoiceAnalysisResult } from "@/lib/nvidia";

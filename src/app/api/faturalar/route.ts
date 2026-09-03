@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { InvoiceStatus } from "@prisma/client";
 import { z } from "zod";
+import { normalizeItemName } from "@/lib/normalize";
 
 const invoiceItemSaveSchema = z.object({
+  barcode: z.string().nullable().optional(),
   rawName: z.string().min(1),
   normalizedName: z.string().min(1),
-  quantity: z.number().int().positive(),
+  quantity: z.number().positive(),
   unitCostNet: z.number().positive(),
+  vatRate: z.number().min(0).max(100).nullable().optional(),
+  lineTotal: z.number().positive().nullable().optional(),
 });
 
 const invoiceSaveSchema = z.object({
@@ -41,6 +45,7 @@ export async function GET() {
   }
 }
 
+/** Faturayı arşivler; alış fiyatı güncellemesi yapmaz (bunun için /api/products/update-costs) */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -56,6 +61,16 @@ export async function POST(req: NextRequest) {
     const { supplierName, invoiceDate, dueDate, totalAmount, imageUrl, items } =
       parsed.data;
 
+    const sanitizedItems = items.map((item) => ({
+      barcode: item.barcode?.trim() || null,
+      rawName: item.rawName.trim(),
+      normalizedName: normalizeItemName(item.normalizedName || item.rawName),
+      quantity: item.quantity,
+      unitCostNet: item.unitCostNet,
+      vatRate: item.vatRate ?? null,
+      lineTotal: item.lineTotal ?? item.quantity * item.unitCostNet,
+    }));
+
     const invoice = await prisma.invoice.create({
       data: {
         supplierName,
@@ -65,12 +80,7 @@ export async function POST(req: NextRequest) {
         imageUrl: imageUrl || null,
         status: InvoiceStatus.ISLENDI,
         items: {
-          create: items.map((item) => ({
-            rawName: item.rawName,
-            normalizedName: item.normalizedName,
-            quantity: item.quantity,
-            unitCostNet: item.unitCostNet,
-          })),
+          create: sanitizedItems,
         },
       },
       include: {

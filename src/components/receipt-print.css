@@ -1,0 +1,185 @@
+/* Termal fiş — HPRT PPTII-A 56mm, 50mm baskı alanı (ReceiptPrint) */
+@page {
+  size: 56mm auto !important;
+  margin: 0 !important;
+}
+
+@media screen {
+  #thermal-receipt,
+  .thermal-receipt-container {
+    display: none;
+  }
+}
+
+@media print {
+  html,
+  body {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  #thermal-receipt,
+  #thermal-receipt *,
+  .thermal-receipt-container,
+  .thermal-receipt-container * {
+    visibility: visible !important;
+  }
+
+  #thermal-receipt,
+  .thermal-receipt-container {
+    position: relative !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 50mm !important;
+    max-width: 50mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    padding-top: 0 !important;
+    box-sizing: border-box !important;
+    letter-spacing: 0.5px !important;
+    text-align: left !important;
+    font-family: monospace !important;
+    line-height: 1.35 !important;
+    color: #000 !important;
+    background: #fff !important;
+    -webkit-font-smoothing: auto !important;
+    -moz-osx-font-smoothing: auto !important;
+    overflow: hidden !important;
+  }
+
+  #thermal-receipt *,
+  .thermal-receipt-container * {
+    box-sizing: border-box !important;
+    font-family: monospace !important;
+    line-height: 1.35 !important;
+    color: #000 !important;
+    text-align: left !important;
+  }
+
+  #thermal-receipt .receipt-header,
+  .thermal-receipt-container .receipt-header {
+    text-align: left !important;
+    width: 100%;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  #thermal-receipt .receipt-title,
+  .thermal-receipt-container .receipt-title {
+    font-size: 16px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.05em !important;
+  }
+
+  #thermal-receipt .receipt-header-meta,
+  .thermal-receipt-container .receipt-header-meta {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+  }
+
+  #thermal-receipt .receipt-meta,
+  .thermal-receipt-container .receipt-meta,
+  #thermal-receipt .receipt-row.receipt-meta,
+  .thermal-receipt-container .receipt-row.receipt-meta {
+    font-size: 12px !important;
+    font-weight: 800 !important;
+  }
+
+  #thermal-receipt .receipt-footer,
+  .thermal-receipt-container .receipt-footer {
+    text-align: left !important;
+    width: 100%;
+  }
+
+  #thermal-receipt .receipt-footer-text,
+  .thermal-receipt-container .receipt-footer-text,
+  #thermal-receipt .receipt-thanks,
+  .thermal-receipt-container .receipt-thanks {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+  }
+
+  #thermal-receipt .receipt-row,
+  .thermal-receipt-container .receipt-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    letter-spacing: 0.5px !important;
+    font-family: monospace !important;
+    text-align: left !important;
+    overflow: hidden !important;
+  }
+
+  #thermal-receipt .receipt-row.receipt-item-line,
+  .thermal-receipt-container .receipt-row.receipt-item-line {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.05em !important;
+  }
+
+  #thermal-receipt .receipt-row.receipt-vat,
+  .thermal-receipt-container .receipt-row.receipt-vat,
+  #thermal-receipt .receipt-row.receipt-payment,
+  .thermal-receipt-container .receipt-row.receipt-payment {
+    font-size: 12px !important;
+    font-weight: 800 !important;
+  }
+
+  #thermal-receipt .receipt-row.receipt-total,
+  .thermal-receipt-container .receipt-row.receipt-total {
+    font-size: 17px !important;
+    font-weight: 900 !important;
+  }
+
+  #thermal-receipt .receipt-row span,
+  .thermal-receipt-container .receipt-row span {
+    text-align: left !important;
+  }
+
+  #thermal-receipt .receipt-row span:last-child,
+  .thermal-receipt-container .receipt-row span:last-child {
+    flex-shrink: 0;
+    margin-left: 4px;
+  }
+
+  #thermal-receipt .receipt-divider,
+  .thermal-receipt-container .receipt-divider {
+    width: 100% !important;
+    height: 0 !important;
+    margin: 0.4em 0 !important;
+    padding: 0 !important;
+    border-top: 2px solid #000 !important;
+  }
+
+  #thermal-receipt .receipt-spacer,
+  .thermal-receipt-container .receipt-spacer {
+    height: 0.5em;
+  }
+
+  #thermal-receipt .receipt-item-qty,
+  .thermal-receipt-container .receipt-item-qty {
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    text-align: left !important;
+    overflow: hidden !important;
+  }
+
+  #thermal-receipt .receipt-thanks,
+  .thermal-receipt-container .receipt-thanks {
+    margin-top: 0.25em;
+    text-align: left !important;
+  }
+}

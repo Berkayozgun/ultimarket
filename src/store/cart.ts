@@ -16,6 +16,12 @@ interface CartStore {
     name: string;
     sellPrice: number;
   }) => void;
+  addVirtualQuickItem: (item: {
+    productId: number;
+    barcode: string;
+    name: string;
+    unitPrice: number;
+  }) => void;
   inc: (productId: number) => void;
   dec: (productId: number) => void;
   remove: (productId: number) => void;
@@ -46,6 +52,32 @@ export const useCartStore = create<CartStore>((set, get) => ({
             barcode: product.barcode,
             name: product.name,
             unitPrice: product.sellPrice,
+            quantity: 1,
+          },
+        ],
+      };
+    });
+  },
+  addVirtualQuickItem: (item) => {
+    set((state) => {
+      const existing = state.items.find((i) => i.productId === item.productId);
+      if (existing) {
+        return {
+          items: state.items.map((i) =>
+            i.productId === item.productId
+              ? { ...i, quantity: i.quantity + 1 }
+              : i
+          ),
+        };
+      }
+      return {
+        items: [
+          ...state.items,
+          {
+            productId: item.productId,
+            barcode: item.barcode,
+            name: item.name,
+            unitPrice: item.unitPrice,
             quantity: 1,
           },
         ],

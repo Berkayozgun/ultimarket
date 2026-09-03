@@ -24,16 +24,34 @@ enum InvoiceStatus {
 }
 
 model Product {
-  id        Int        @id @default(autoincrement())
-  barcode   String     @unique
-  name      String
-  sellPrice Float
-  category  String?
-  isActive  Boolean    @default(true)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id             Int        @id @default(autoincrement())
+  barcode        String     @unique
+  name           String
+  sellPrice      Float
+  lastCostNet    Float?
+  purchaseVatRate Float?
+  category       String?
+  isActive       Boolean    @default(true)
+  isQuickSale    Boolean    @default(false)
+  quickSaleOrder Int        @default(0)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
-  saleItems SaleItem[]
+  saleItems              SaleItem[]
+  invoiceProductMappings InvoiceProductMapping[]
+}
+
+model InvoiceProductMapping {
+  id              Int      @id @default(autoincrement())
+  supplierRawName String   @unique
+  productId       Int
+  packQuantity    Int      @default(1)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([supplierRawName])
 }
 
 model Sale {
@@ -98,10 +116,13 @@ model Invoice {
 model InvoiceItem {
   id             Int      @id @default(autoincrement())
   invoiceId      Int
+  barcode        String?
   rawName        String
   normalizedName String
   quantity       Int
   unitCostNet    Float
+  vatRate        Float?
+  lineTotal      Float?
 
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 }
