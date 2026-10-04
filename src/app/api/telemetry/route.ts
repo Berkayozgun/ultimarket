@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { broadcastTelemetryEvent } from "@/lib/supabase";
 
+interface TelemetryLogRecord {
+  id: string;
+  event: string;
+  barcode: string | null;
+  items: unknown;
+  count: number | null;
+  reason: string | null;
+  createdAt: Date;
+}
+
 export async function POST(req: NextRequest) {
   try {
     // 1. Authorization Kontrolü
@@ -39,8 +49,8 @@ export async function POST(req: NextRequest) {
     let barcode: string | null = null;
     let productName: string | null = null;
     let productPrice: number | null = null;
-    let items = data.items ?? null;
-    let count: number | null =
+    const items = data.items ?? null;
+    const count: number | null =
       data.count ?? (Array.isArray(items) ? items.length : null);
     const reason: string | null = data.reason ?? null;
 
@@ -66,17 +76,27 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Prisma ile TelemetryLog tablosuna kaydet
-    let logEntry;
+    let logEntry: TelemetryLogRecord;
     try {
-      logEntry = await prisma.telemetryLog.create({
-        data: {
-          event: String(event),
-          barcode,
-          items: items ? (items as any) : undefined,
-          count: count !== null ? Number(count) : undefined,
-          reason,
-        },
-      });
+      const dbClient = prisma as unknown as {
+        telemetryLog?: {
+          create: (args: unknown) => Promise<TelemetryLogRecord>;
+        };
+      };
+
+      if (dbClient.telemetryLog) {
+        logEntry = await dbClient.telemetryLog.create({
+          data: {
+            event: String(event),
+            barcode,
+            items: items ? (items as any) : undefined,
+            count: count !== null ? Number(count) : undefined,
+            reason,
+          },
+        });
+      } else {
+        throw new Error("telemetryLog model not initialized in Prisma Client");
+      }
     } catch (saveErr) {
       console.error("[Telemetry] DB save error:", saveErr);
       // Fallback: logEntry olmasa bile realtime broadcast fırlatıp POS'u aksatmamak için
@@ -92,7 +112,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 5. Supabase Realtime broadcast fırlat
-    // POS'un yanıt süresini minimumda tutmak için broadcast işlemini arka planda tetikliyoruz
+    // POS'un yanıt süresini minimumda tutmak için broadcast işlemini non-blocking yürütüyoruz
     const broadcastPayload = {
       id: logEntry.id,
       event: logEntry.event,
@@ -103,7 +123,7 @@ export async function POST(req: NextRequest) {
       count,
       reason,
       timestamp: timestamp || Date.now(),
-      createdAt: logEntry.createdAt.toISOString(),
+      createdAt: logEntry.createdAt instanceof Date ? logEntry.createdAt.toISOString() : new Date().toISOString(),
     };
 
     // Non-blocking realtime push
@@ -112,10 +132,11 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ success: true, id: logEntry.id }, { status: 200 });
-  } catch (err: any) {
-    console.error("[Telemetry API Error]:", err);
+  } catch (err: unknown) {
+    const errorObj = err as Error;
+    console.error("[Telemetry API Error]:", errorObj);
     return NextResponse.json(
-      { error: "Internal Server Error", message: err?.message },
+      { error: "Internal Server Error", message: errorObj?.message },
       { status: 500 }
     );
   }
@@ -126,31 +147,55 @@ export async function GET() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const [logs, todayScanCount] = await Promise.all([
-      prisma.telemetryLog.findMany({
-        take: 150,
-        orderBy: { createdAt: "desc" },
-      }).catch(() => []),
-      prisma.telemetryLog.count({
-        where: {
-          event: "ITEM_SCANNED",
-          createdAt: { gte: today },
-        },
-      }).catch(() => 0),
-    ]);
+    const dbClient = prisma as unknown as {
+      telemetryLog?: {
+        findMany: (args: unknown) => Promise<TelemetryLogRecord[]>;
+        count: (args: unknown) => Promise<number>;
+      };
+    };
+
+    let logs: TelemetryLogRecord[] = [];
+    let todayScanCount = 0;
+
+    if (dbClient.telemetryLog) {
+      const results = await Promise.all([
+        dbClient.telemetryLog
+          .findMany({
+            take: 150,
+            orderBy: { createdAt: "desc" },
+          })
+          .catch(() => [] as TelemetryLogRecord[]),
+        dbClient.telemetryLog
+          .count({
+            where: {
+              event: "ITEM_SCANNED",
+              createdAt: { gte: today },
+            },
+          })
+          .catch(() => 0),
+      ]);
+      logs = results[0];
+      todayScanCount = results[1];
+    }
 
     // Ürün isimlerini eşleştirmek için barkodları alalım
-    const barcodes = Array.from(new Set(logs.map((l) => l.barcode).filter(Boolean))) as string[];
-    const products = barcodes.length > 0
-      ? await prisma.product.findMany({
-          where: { barcode: { in: barcodes } },
-          select: { barcode: true, name: true, sellPrice: true },
-        }).catch(() => [])
-      : [];
+    const barcodes = Array.from(
+      new Set(logs.map((l: TelemetryLogRecord) => l.barcode).filter(Boolean))
+    ) as string[];
+
+    const products =
+      barcodes.length > 0
+        ? await prisma.product
+            .findMany({
+              where: { barcode: { in: barcodes } },
+              select: { barcode: true, name: true, sellPrice: true },
+            })
+            .catch(() => [])
+        : [];
 
     const productMap = new Map(products.map((p) => [p.barcode, p]));
 
-    const formattedLogs = logs.map((log) => {
+    const formattedLogs = logs.map((log: TelemetryLogRecord) => {
       const prod = log.barcode ? productMap.get(log.barcode) : null;
       return {
         id: log.id,
@@ -162,7 +207,7 @@ export async function GET() {
         count: log.count,
         reason: log.reason,
         timestamp: new Date(log.createdAt).getTime(),
-        createdAt: log.createdAt.toISOString(),
+        createdAt: log.createdAt instanceof Date ? log.createdAt.toISOString() : new Date().toISOString(),
       };
     });
 
@@ -170,7 +215,7 @@ export async function GET() {
       logs: formattedLogs,
       todayScanCount,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("[Telemetry GET Error]:", err);
     return NextResponse.json({ logs: [], todayScanCount: 0 });
   }
