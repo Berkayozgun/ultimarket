@@ -45,6 +45,13 @@ export default function RootLayout({
             >
               Ürünler
             </Link>
+            <Link
+              href="/live-terminal"
+              className="px-3 py-1 rounded bg-emerald-950/60 border border-emerald-800/80 text-emerald-400 hover:bg-emerald-900/60 font-mono text-xs font-semibold flex items-center gap-1.5 active:scale-98"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
+              Canlı Terminal
+            </Link>
           </nav>
         </header>
         <main className="flex-1 flex flex-col min-h-0 overflow-hidden">

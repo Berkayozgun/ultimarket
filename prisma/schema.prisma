@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum PaymentType {
@@ -125,4 +126,17 @@ model InvoiceItem {
   lineTotal      Float?
 
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model TelemetryLog {
+  id        String   @id @default(cuid())
+  event     String   // "ITEM_SCANNED" | "BASKET_COMPLETED"
+  barcode   String?
+  items     Json?    // BASKET_COMPLETED için okutulan barkod listesi
+  count     Int?     // Sepetteki toplam ürün adedi
+  reason    String?  // "IDLE_TIMEOUT" | "ESC_KEY"
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([barcode])
 }
