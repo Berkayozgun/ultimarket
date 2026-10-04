@@ -28,6 +28,13 @@ export default function RootLayout({
               Kasa
             </Link>
             <Link
+              href="/dashboard"
+              className="px-3 py-1 rounded bg-amber-950/60 border border-amber-800/80 text-amber-300 hover:bg-amber-900/60 font-mono text-xs font-semibold flex items-center gap-1.5 active:scale-98"
+            >
+              <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+              Satış Özeti
+            </Link>
+            <Link
               href="/veresiye"
               className="px-3 py-1 rounded bg-neutral-800 text-neutral-200 hover:bg-neutral-700 font-medium active:scale-98"
             >

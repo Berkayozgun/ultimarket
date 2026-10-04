@@ -16,6 +16,7 @@ import {
   type QuickSaleDefinition,
   type ResolvedQuickSaleProduct,
 } from "@/lib/quick-sale";
+import Link from "next/link";
 import {
   Banknote,
   CreditCard,
@@ -30,6 +31,7 @@ import {
   X,
   UserPlus,
   Phone,
+  BarChart3,
 } from "lucide-react";
 
 interface Customer {
@@ -513,8 +515,8 @@ export default function KasaPage() {
 
       <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
         <div className="flex-1 flex flex-col min-h-0 border-r border-neutral-800 bg-neutral-950">
-          <div className="px-4 py-2.5 bg-neutral-900 border-b border-neutral-800 shrink-0">
-            <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
+          <div className="px-4 py-2 bg-neutral-900 border-b border-neutral-800 shrink-0 flex items-center justify-between gap-3">
+            <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1">
               <div className="relative flex-1">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none" />
                 <input
@@ -534,6 +536,15 @@ export default function KasaPage() {
                 Ekle
               </button>
             </form>
+
+            <Link
+              href="/dashboard"
+              className="px-3 py-2 rounded bg-amber-950/70 hover:bg-amber-900/80 border border-amber-800/80 text-amber-300 font-mono text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-colors"
+              title="Günün Satış Özeti ve Analitik Paneline Git"
+            >
+              <BarChart3 className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Günün Satış Özeti</span>
+            </Link>
           </div>
 
           <QuickSaleGrid

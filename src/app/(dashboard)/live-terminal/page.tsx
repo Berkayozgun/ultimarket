@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef, useMemo } from "react";
+import Link from "next/link";
 import {
   useTelemetryStore,
   type TelemetryLogItem,
@@ -19,6 +20,7 @@ import {
   Sparkles,
   RefreshCw,
   Info,
+  BarChart3,
 } from "lucide-react";
 
 export default function LiveTerminalPage() {
@@ -314,6 +316,15 @@ export default function LiveTerminalPage() {
                 <option value="BASKET_COMPLETED">Sadece Kapanan Sepetler</option>
               </select>
             )}
+
+            <Link
+              href="/dashboard"
+              className="px-2.5 py-1 rounded bg-amber-950/70 border border-amber-800/80 text-amber-300 hover:bg-amber-900/80 flex items-center gap-1.5 text-xs transition-colors"
+              title="Günün Satış Özeti ve Analitik Paneline Git"
+            >
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Satış Özeti</span>
+            </Link>
           </div>
         </div>
 
